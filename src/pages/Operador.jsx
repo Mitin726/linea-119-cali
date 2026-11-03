@@ -90,7 +90,7 @@ export default function Operador() {
             
             {/* Renderizado condicional de variables médicas del grupo 300[cite: 1] */}
             {selectedReport.grupo === 300 && (
-              <div style={{ padding: '0.5rem', backgroundColor: '#334155', borderRadius: '4px', margin: '0.5rem 0' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#E2E8F0', borderRadius: '4px', margin: '0.5rem 0' }}>
                 <p>Edad: {selectedReport.edad || 'N/D'} | Sexo: {selectedReport.sexo || 'N/D'}</p>
                 <p>Consciente: {selectedReport.consciente ? 'Sí' : 'No'} | Respira: {selectedReport.respira ? 'Sí' : 'No'}</p>
               </div>

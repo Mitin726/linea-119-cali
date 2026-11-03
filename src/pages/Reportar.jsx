@@ -103,8 +103,8 @@ export default function Reportar() {
 
           {/* Preguntas de continuación del grupo 300[cite: 1] */}
           {form.grupo === '300' && (
-            <div style={{ backgroundColor: '#121212', padding: '1rem', marginTop: '1rem', borderRadius: '4px', border: '1px solid #2563eb' }}>
-              <p style={{ color: '#2563eb', fontWeight: 'bold', marginBottom: '0.5rem' }}>Información Médica Adicional</p>
+            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', marginTop: '1rem', borderRadius: '4px', border: '1px solid #DC2626' }}>
+              <p style={{ color: '#DC2626', fontWeight: 'bold', marginBottom: '0.5rem' }}>Información Médica Adicional</p>
               <div className="grid-2-cols">
                 <input type="number" name="edad" placeholder="Edad aproximada" onChange={handleInputChange} className="form-input" />
                 <select name="sexo" onChange={handleInputChange} className="form-input">
@@ -130,7 +130,7 @@ export default function Reportar() {
         <div className="mb-2">
           <label className="text-secondary mb-05" style={{ display: 'block' }}>Adjuntar Fotos/Videos (Máx. 3)</label>
           {/* Soporte para videos[cite: 1] */}
-          <input type="file" multiple accept="image/*,video/*" onChange={handleArchivos} style={{ color: '#F8FAFC' }} />
+          <input type="file" multiple accept="image/*,video/*" onChange={handleArchivos} style={{ color: '#0F172A' }} />
           <button type="button" className="btn-toggle-tips" onClick={() => setMostrarTips(!mostrarTips)}>💡 Tips de captura</button>
           <div className="flex-center mt-1">
             {archivos.map((archivo, i) => (
@@ -144,8 +144,8 @@ export default function Reportar() {
         {/* Ventana flotante de recomendaciones[cite: 1] */}
         {mostrarTips && (
           <div className="floating-tips">
-            <h4 style={{ color: '#1D4ED8', marginBottom: '0.5rem' }}>Recomendaciones</h4>
-            <ul style={{ color: '#94A3B8', fontSize: '0.875rem', paddingLeft: '1rem' }}>
+            <h4 style={{ color: '#DC2626', marginBottom: '0.5rem' }}>Recomendaciones</h4>
+            <ul style={{ color: '#64748B', fontSize: '0.875rem', paddingLeft: '1rem' }}>
               <li>Grabe en horizontal si es posible.</li>
               <li>Muestre una toma abierta del lugar.</li>
               <li>No se acerque al peligro.</li>

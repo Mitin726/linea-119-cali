@@ -1,7 +1,7 @@
 /* src/pages/Landing.css */
 .landing-container {
-  background-color: #121212;
-  color: #F8FAFC;
+  background-color: #F8FAFC;
+  color: #0F172A;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -15,20 +15,20 @@
   text-align: center;
   padding: 3rem 1rem;
   position: relative;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .hero-title {
-  color: #1D4ED8;
+  color: #DC2626;
   font-family: 'Minecraft', 'Courier New', monospace;
   font-size: 3rem;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 0px #000;
+  text-shadow: 2px 2px 0px #E2E8F0;
 }
 
 .hero-subtitle {
-  color: #94A3B8;
+  color: #64748B;
   font-size: 1.25rem;
   margin-bottom: 2rem;
 }
@@ -39,8 +39,8 @@
   max-width: 400px;
   margin: 0 auto 2rem auto;
   border-radius: 8px;
-  background: radial-gradient(circle, #1E1E1E 0%, #121212 70%);
-  border: 1px solid #334155;
+  background: radial-gradient(circle, #FFFFFF 0%, #F8FAFC 70%);
+  border: 1px solid #E2E8F0;
 }
 
 .action-buttons {
@@ -63,24 +63,24 @@
 }
 
 .btn-reportar {
-  background-color: #dc2626;
-  color: #F8FAFC;
-  border: 2px solid #991b1b;
+  background-color: #DC2626;
+  color: #FFFFFF;
+  border: 2px solid #B91C1C;
 }
 
 .btn-reportar:hover {
-  background-color: #b91c1c;
+  background-color: #B91C1C;
   transform: scale(1.05);
 }
 
 .btn-llamar {
-  background-color: #1D4ED8;
-  color: #F8FAFC;
-  border: 2px solid #1e40af;
+  background-color: #1E3A8A;
+  color: #FFFFFF;
+  border: 2px solid #172554;
 }
 
 .btn-llamar:hover {
-  background-color: #1e40af;
+  background-color: #172554;
   transform: scale(1.05);
 }
 
@@ -94,7 +94,7 @@
 }
 
 .groups-title {
-  color: #9333EA;
+  color: #F59E0B;
   font-family: 'Minecraft', 'Courier New', monospace;
   font-size: 2rem;
   margin-bottom: 2rem;
@@ -108,8 +108,8 @@
 }
 
 .group-card {
-  background-color: #1E1E1E;
-  border: 1px solid #334155;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 8px;
   padding: 1.5rem;
   transition: transform 0.2s;
@@ -129,24 +129,24 @@
 }
 
 .group-name {
-  color: #F8FAFC;
+  color: #0F172A;
   font-weight: bold;
 }
 
 .footer {
   padding: 2rem;
   text-align: center;
-  border-top: 1px solid #334155;
-  background-color: #0f0f0f;
+  border-top: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
 }
 
 .footer-link {
-  color: #94A3B8;
+  color: #64748B;
   text-decoration: none;
   font-size: 0.875rem;
   transition: color 0.2s;
 }
 
 .footer-link:hover {
-  color: #F8FAFC;
+  color: #0F172A;
 }
