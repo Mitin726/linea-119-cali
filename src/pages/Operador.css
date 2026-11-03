@@ -220,3 +220,19 @@
 .popup-status {
   font-weight: bold;
 }
+
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #121212;
+  border-bottom: 1px solid #334155;
+}
+.filter-select {
+  padding: 0.5rem;
+  background-color: #1E1E1E;
+  border: 1px solid #334155;
+  color: #F8FAFC;
+  border-radius: 4px;
+}
