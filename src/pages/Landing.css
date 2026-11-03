@@ -1,0 +1,152 @@
+/* src/pages/Landing.css */
+.landing-container {
+  background-color: #121212;
+  color: #F8FAFC;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  position: relative;
+  border-bottom: 1px solid #334155;
+}
+
+.hero-title {
+  color: #1D4ED8;
+  font-family: 'Minecraft', 'Courier New', monospace;
+  font-size: 3rem;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 0px #000;
+}
+
+.hero-subtitle {
+  color: #94A3B8;
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.canvas-container {
+  height: 250px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 2rem auto;
+  border-radius: 8px;
+  background: radial-gradient(circle, #1E1E1E 0%, #121212 70%);
+  border: 1px solid #334155;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 10;
+}
+
+.btn-reportar, .btn-llamar {
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: transform 0.2s, background-color 0.2s;
+  text-transform: uppercase;
+  font-family: 'Minecraft', 'Courier New', monospace;
+}
+
+.btn-reportar {
+  background-color: #dc2626;
+  color: #F8FAFC;
+  border: 2px solid #991b1b;
+}
+
+.btn-reportar:hover {
+  background-color: #b91c1c;
+  transform: scale(1.05);
+}
+
+.btn-llamar {
+  background-color: #1D4ED8;
+  color: #F8FAFC;
+  border: 2px solid #1e40af;
+}
+
+.btn-llamar:hover {
+  background-color: #1e40af;
+  transform: scale(1.05);
+}
+
+.groups-section {
+  padding: 3rem 2rem;
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.groups-title {
+  color: #9333EA;
+  font-family: 'Minecraft', 'Courier New', monospace;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.group-card {
+  background-color: #1E1E1E;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.group-card:hover {
+  transform: translateY(-5px);
+}
+
+.group-code {
+  font-family: 'Minecraft', 'Courier New', monospace;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.group-name {
+  color: #F8FAFC;
+  font-weight: bold;
+}
+
+.footer {
+  padding: 2rem;
+  text-align: center;
+  border-top: 1px solid #334155;
+  background-color: #0f0f0f;
+}
+
+.footer-link {
+  color: #94A3B8;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #F8FAFC;
+}

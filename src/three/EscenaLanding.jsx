@@ -1,36 +1,45 @@
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { useRef } from 'react'
-
-// Escena 3D de la landing con React Three Fiber.
-// Esto es solo un punto de partida (una "sirena" que gira) para comprobar que R3F funciona.
-// TODO (estudiantes): reemplazarla por su propia escena (sección 5 del enunciado).
-function Sirena() {
-  const ref = useRef()
-  useFrame((_, delta) => {
-    ref.current.rotation.y += delta * 2
-  })
-  return (
-    <group ref={ref}>
-      <mesh position={[0, 0.5, 0]}>
-        <cylinderGeometry args={[0.5, 0.6, 1, 32]} />
-        <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
-      </mesh>
-      <mesh position={[0, -0.15, 0]}>
-        <cylinderGeometry args={[0.8, 0.8, 0.3, 32]} />
-        <meshStandardMaterial color="#334155" />
-      </mesh>
-    </group>
-  )
-}
+// src/three/EscenaLanding.jsx
+import { useRef, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Float } from '@react-three/drei';
 
 export default function EscenaLanding() {
+  const groupRef = useRef();
+  const [hovered, setHover] = useState(false);
+
+  // Animación con useFrame (rota constantemente)[cite: 1]
+  useFrame((state, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.5;
+    }
+  });
+
   return (
-    <Canvas camera={{ position: [0, 1.5, 3.5], fov: 45 }} style={{ height: 320 }}>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3, 4, 2]} intensity={1.2} />
-      <Sirena />
-      <OrbitControls enableZoom={false} />
-    </Canvas>
-  )
+    <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+      <group 
+        ref={groupRef}
+        // Interacción con el mouse[cite: 1]
+        onPointerOver={() => setHover(true)}
+        onPointerOut={() => setHover(false)}
+        scale={hovered ? 1.2 : 1}
+      >
+        {/* Base del botón */}
+        <mesh position={[0, -0.5, 0]}>
+          <cylinderGeometry args={[1.5, 1.5, 0.5, 32]} />
+          <meshStandardMaterial color="#1E1E1E" metalness={0.8} roughness={0.2} />
+        </mesh>
+        
+        {/* Botón rojo superior */}
+        <mesh position={[0, 0, 0]}>
+          <cylinderGeometry args={[1, 1, 0.8, 32]} />
+          <meshStandardMaterial 
+            color={hovered ? "#ff0000" : "#dc2626"} 
+            emissive={hovered ? "#ff0000" : "#000000"}
+            emissiveIntensity={hovered ? 0.5 : 0}
+            roughness={0.1} 
+          />
+        </mesh>
+      </group>
+    </Float>
+  );
 }
