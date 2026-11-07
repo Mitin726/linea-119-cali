@@ -12,23 +12,27 @@ const CENTRO_CALI = [3.437, -76.522]
 //   reportes: [{ id, grupo, lat, lng, estado, barrio }]
 //   seleccionadoId: id del reporte seleccionado (o null)
 //   onSeleccionar: (id) => void
-export default function MapaOperador({ reportes = [], seleccionadoId = null, onSeleccionar }) {
+//   estilo: 'calles' | 'oscuro' (capa base con la que arranca el mapa)
+export default function MapaOperador({ reportes = [], seleccionadoId = null, onSeleccionar, estilo = 'calles' }) {
   const seleccionado = reportes.find((r) => r.id === seleccionadoId)
 
   return (
     <MapContainer center={CENTRO_CALI} zoom={13} style={{ width: '100%', height: '100%' }}>
       {/* Dos estilos de mapa: el operador los cambia con el control de la esquina */}
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked name="Calles (OpenStreetMap)">
+        <LayersControl.BaseLayer checked={estilo === 'calles'} name="Calles (OpenStreetMap)">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Oscuro (centro de control)">
+        <LayersControl.BaseLayer checked={estilo === 'oscuro'} name="Oscuro (centro de control)">
+          {/* Las teselas oscuras de CARTO ahora piden API key: se usan las de OpenStreetMap
+              con un filtro CSS que las oscurece (clase tiles-oscuros en mapa.css). */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="tiles-oscuros"
           />
         </LayersControl.BaseLayer>
       </LayersControl>
@@ -81,7 +85,11 @@ function IrAlSeleccionado({ reporte }) {
   const id = reporte?.id
   useEffect(() => {
     if (!reporte) return
-    map.flyTo([reporte.lat, reporte.lng], 16, { duration: 0.8 })
+    // En pantallas anchas el detalle tapa el lado derecho del mapa: el punto se centra
+    // un poco a la izquierda para que el pin y su popup queden visibles.
+    const desplazamiento = window.innerWidth > 860 ? 210 : 0
+    const destino = map.unproject(map.project([reporte.lat, reporte.lng], 16).add([desplazamiento, 0]), 16)
+    map.flyTo(destino, 16, { duration: 0.8 })
     map.once('moveend', () => {
       map.eachLayer((layer) => {
         const p = layer.getLatLng?.()

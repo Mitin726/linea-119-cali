@@ -15,6 +15,7 @@ Este proyecto es un prototipo funcional de un canal digital web para el Benemér
 * **Enrutamiento:** React Router Dom
 * **Mapas:** React-Leaflet y OpenStreetMap (gratuito)
 * **Escena 3D:** React Three Fiber y Drei
+* **Íconos y tipografía:** lucide-react, Inter y JetBrains Mono (Google Fonts)
 * **Estado Global:** Context API + LocalStorage + Eventos de Sincronización
 
 ## Cómo correr el proyecto localmente
@@ -73,13 +74,20 @@ A continuación, se responde a las inquietudes del cliente, explicando qué se i
 ```
 src/
 ├── context/EmergencyContext.jsx   Estado global (Context + localStorage + evento storage)
-├── data/                          grupos.js, barrios.js, estados.js (estados, unidades, formato de hora)
+├── data/                          grupos.js, gruposInfo.js (íconos y ejemplos), barrios.js, estados.js
 ├── mapa/                          MapaOperador.jsx (mapa del operador), iconos.js, mapa.css
 ├── three/EscenaLanding.jsx        Escena 3D (botón de emergencia con alarma)
-├── components/                    CampoFormulario, MiniMapa, ConfirmacionReporte,
-│                                  ReporteItem, DetalleReporte, HistorialEstados
+├── components/                    SiteHeader, SiteFooter, Marca, CampoFormulario, MiniMapa,
+│                                  ConfirmacionReporte, ReporteItem, DetalleReporte, HistorialEstados
 └── pages/                         Landing, Reportar, Operador
 ```
+
+## Diseño
+
+Dos ambientes con un mismo sistema de diseño (tokens en `src/index.css`):
+* **Sitio ciudadano (landing y reporte):** claro e institucional, para transmitir confianza y calma. Tipografía **Inter**, rojo institucional solo en las acciones principales e íconos de **lucide-react**.
+* **Tablero del operador:** oscuro, tipo centro de control (clase `.tema-oscuro`), con reloj en vivo, contadores por estado, lista ordenada por prioridad y mapa oscuro. **JetBrains Mono** se usa para radicados, horas y códigos.
+* El reporte es un asistente de 5 pasos (Emergencia → Ubicación → Tus datos → Evidencia → Revisar) que sigue el orden del interrogatorio del protocolo, y la confirmación muestra el estado como un seguimiento paso a paso.
 
 ## Escena 3D
 

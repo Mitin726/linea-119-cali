@@ -1,0 +1,104 @@
+/* ---------- Marca ---------- */
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--c-text);
+  text-decoration: none;
+}
+.marca__insignia {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--c-primary);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+.marca__texto { display: flex; flex-direction: column; line-height: 1.15; }
+.marca__nombre { font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; white-space: nowrap; }
+.marca__sub { color: var(--c-subtle); font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
+.marca--claro { color: #fff; }
+.marca--claro .marca__sub { color: rgba(255, 255, 255, 0.6); }
+
+/* ---------- Header ---------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--c-border);
+}
+.topbar { background: var(--c-ink); color: rgba(255, 255, 255, 0.75); font-size: 0.75rem; }
+.topbar__inner { display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.4rem; padding-bottom: 0.4rem; }
+.topbar__item { display: inline-flex; align-items: center; gap: 0.5rem; }
+.topbar__pulso {
+  width: 7px; height: 7px; border-radius: 50%; background: #12b76a;
+  box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.25);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 68px;
+}
+.site-nav { display: flex; gap: 0.25rem; }
+.site-nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--r-sm);
+  color: var(--c-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-nav a:hover { color: var(--c-text); background: var(--c-surface-2); }
+.site-header__acciones { display: flex; gap: 0.5rem; }
+
+/* ---------- Footer ---------- */
+.site-footer { background: var(--c-ink); color: rgba(255, 255, 255, 0.7); }
+.site-footer__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2rem;
+  flex-wrap: wrap;
+  padding-top: 2.5rem;
+  padding-bottom: 2rem;
+}
+.site-footer__nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.75rem; }
+.site-footer a { color: rgba(255, 255, 255, 0.7); text-decoration: none; font-size: 0.9rem; }
+.site-footer a:hover { color: #fff; }
+.site-footer__operador {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--r-md);
+}
+.site-footer__operador:hover { border-color: rgba(255, 255, 255, 0.4); }
+.site-footer__legal {
+  padding-top: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1080px) {
+  .site-nav { display: none; }
+}
+
+@media (max-width: 560px) {
+  .topbar__item--fin { display: none; }
+  .site-header__inner { min-height: 60px; gap: 0.75rem; }
+  .marca__sub { display: none; }
+  .site-header__acciones .btn { padding: 0.5rem 0.7rem; }
+  .site-header__acciones .site-header__reportar { display: none; }
+  .site-footer__inner { flex-direction: column; align-items: flex-start; }
+}

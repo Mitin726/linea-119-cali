@@ -1,12 +1,43 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Zap, Trash2, ExternalLink, Inbox, Filter } from 'lucide-react';
 import { useEmergencias } from '../context/EmergencyContext';
 import { GRUPOS } from '../data/grupos';
-import { ESTADOS } from '../data/estados';
+import { ESTADOS, COLOR_ESTADO } from '../data/estados';
 import MapaOperador from '../mapa/MapaOperador';
 import ReporteItem from '../components/ReporteItem';
 import DetalleReporte from '../components/DetalleReporte';
+import Marca from '../components/Marca';
 import './Operador.css';
+
+// Orden de prioridad de la lista: primero lo que requiere acción del operador.
+const PRIORIDAD = { Recibido: 0, Validado: 1, 'Unidad despachada': 2, Cerrado: 3, Descartado: 4 };
+
+const CONTADORES = [
+  { estado: 'Recibido', etiqueta: 'Por validar' },
+  { estado: 'Validado', etiqueta: 'Validados' },
+  { estado: 'Unidad despachada', etiqueta: 'En camino' },
+  { estado: 'Cerrado', etiqueta: 'Cerrados' },
+];
+
+// Reloj en vivo del centro de despacho.
+function Reloj() {
+  const [ahora, setAhora] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="ops-reloj">
+      <span className="ops-reloj__hora mono">
+        {ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+      </span>
+      <span className="ops-reloj__fecha">
+        {ahora.toLocaleDateString('es-CO', { weekday: 'short', day: '2-digit', month: 'short' })}
+      </span>
+    </div>
+  );
+}
 
 export default function Operador() {
   const { reports, updateReportStatus, simular50Reportes, limpiarReportes } = useEmergencias();
@@ -16,11 +47,13 @@ export default function Operador() {
 
   const filteredReports = useMemo(
     () =>
-      reports.filter(
-        (r) =>
-          (!filtroGrupo || String(r.grupo) === filtroGrupo) &&
-          (!filtroEstado || r.estado === filtroEstado)
-      ),
+      reports
+        .filter(
+          (r) =>
+            (!filtroGrupo || String(r.grupo) === filtroGrupo) &&
+            (!filtroEstado || r.estado === filtroEstado)
+        )
+        .sort((a, b) => PRIORIDAD[a.estado] - PRIORIDAD[b.estado] || new Date(b.fecha) - new Date(a.fecha)),
     [reports, filtroGrupo, filtroEstado]
   );
 
@@ -31,16 +64,9 @@ export default function Operador() {
   );
 
   const selectedReport = reports.find((r) => r.id === selectedId);
-  const pendientes = reports.filter((r) => r.estado === 'Recibido').length;
-
-  // Al seleccionar (desde la lista o el mapa) se sube al detalle, que está arriba de la lista.
-  const sidebarRef = useRef(null);
-  const seleccionar = (id) => {
-    setSelectedId(id);
-    sidebarRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
+  const conteo = (estado) => reports.filter((r) => r.estado === estado).length;
   const actualizar = (estado, extra) => updateReportStatus(selectedId, estado, extra);
+  const hayFiltros = filtroGrupo || filtroEstado;
 
   const borrarTodo = () => {
     if (window.confirm('¿Borrar todos los reportes? Esta acción no se puede deshacer.')) {
@@ -50,85 +76,111 @@ export default function Operador() {
   };
 
   return (
-    <div className="operador-container">
-      <aside className="sidebar" ref={sidebarRef}>
-        <div className="sidebar-header">
-          <Link to="/" className="sidebar-volver">← Inicio</Link>
-          <h1 className="sidebar-title">Tablero de despacho</h1>
-          <p className="sidebar-subtitle">
-            {reports.length} reportes · <strong>{pendientes} por validar</strong>
-          </p>
-          <div className="flex-gap mt-05">
-            <button type="button" onClick={simular50Reportes} className="btn btn-warning">
-              Simular 50 reportes
+    <div className="ops tema-oscuro">
+      {/* ---------- Barra superior del centro de control ---------- */}
+      <header className="ops-topbar">
+        <Marca claro subtitulo="Centro de despacho 119" />
+
+        <div className="ops-contadores" aria-label="Resumen de reportes">
+          {CONTADORES.map(({ estado, etiqueta }) => (
+            <button
+              key={estado}
+              type="button"
+              className={`ops-contador ${filtroEstado === estado ? 'ops-contador--activo' : ''}`}
+              style={{ '--estado': COLOR_ESTADO[estado] }}
+              onClick={() => setFiltroEstado(filtroEstado === estado ? '' : estado)}
+              title={`Filtrar: ${etiqueta}`}
+            >
+              <span className="ops-contador__num mono">{conteo(estado)}</span>
+              <span className="ops-contador__label">{etiqueta}</span>
             </button>
-            <button type="button" onClick={borrarTodo} className="btn btn-outline" disabled={!reports.length}>
-              Borrar todo
-            </button>
+          ))}
+        </div>
+
+        <div className="ops-topbar__derecha">
+          <Reloj />
+          <span className="ops-en-linea"><span className="ops-en-linea__dot" /> En línea</span>
+          <Link to="/" className="btn btn--ghost btn--sm" title="Ir al sitio público">
+            <ExternalLink size={14} /> <span className="ops-ocultar-movil">Sitio público</span>
+          </Link>
+        </div>
+      </header>
+
+      <div className="ops-cuerpo">
+        {/* ---------- Lista de reportes ---------- */}
+        <aside className="ops-lista">
+          <div className="ops-lista__cabecera">
+            <div className="ops-lista__titulo">
+              <h1>Reportes</h1>
+              <span className="ops-lista__total mono">{filteredReports.length}/{reports.length}</span>
+            </div>
+            <div className="ops-filtros">
+              <Filter size={14} className="ops-filtros__icono" />
+              <select className="ops-select" onChange={(e) => setFiltroGrupo(e.target.value)} value={filtroGrupo} aria-label="Filtrar por grupo">
+                <option value="">Todos los grupos</option>
+                {GRUPOS.map((g) => (
+                  <option key={g.codigo} value={g.codigo}>{g.codigo} - {g.nombre}</option>
+                ))}
+              </select>
+              <select className="ops-select" onChange={(e) => setFiltroEstado(e.target.value)} value={filtroEstado} aria-label="Filtrar por estado">
+                <option value="">Todos los estados</option>
+                {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+            <div className="ops-acciones-2">
+              <button type="button" onClick={simular50Reportes} className="btn btn--secondary btn--sm">
+                <Zap size={14} /> Simular 50
+              </button>
+              <button type="button" onClick={borrarTodo} className="btn btn--danger-outline btn--sm" disabled={!reports.length}>
+                <Trash2 size={14} /> Borrar todo
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="filters-container">
-          <select
-            className="filter-select"
-            onChange={(e) => setFiltroGrupo(e.target.value)}
-            value={filtroGrupo}
-            aria-label="Filtrar por grupo"
-          >
-            <option value="">Todos los grupos</option>
-            {GRUPOS.map((g) => (
-              <option key={g.codigo} value={g.codigo}>
-                {g.codigo} - {g.nombre}
-              </option>
-            ))}
-          </select>
-          <select
-            className="filter-select"
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            value={filtroEstado}
-            aria-label="Filtrar por estado"
-          >
-            <option value="">Todos los estados</option>
-            {ESTADOS.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        </div>
+          {filteredReports.length === 0 ? (
+            <div className="ops-vacio">
+              <Inbox size={28} />
+              <p>{hayFiltros ? 'Ningún reporte coincide con los filtros.' : 'Sin reportes por ahora.'}</p>
+              <span>
+                {hayFiltros ? (
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setFiltroGrupo(''); setFiltroEstado(''); }}>
+                    Quitar filtros
+                  </button>
+                ) : 'Envía uno desde /reportar o usa «Simular 50».'}
+              </span>
+            </div>
+          ) : (
+            <ul className="ops-lista__items">
+              {filteredReports.map((report) => (
+                <ReporteItem
+                  key={report.id}
+                  reporte={report}
+                  activo={selectedId === report.id}
+                  onSeleccionar={setSelectedId}
+                />
+              ))}
+            </ul>
+          )}
+        </aside>
 
-        {selectedReport && (
-          <DetalleReporte
-            key={selectedReport.id}
-            reporte={selectedReport}
-            onActualizar={actualizar}
-            onCerrarDetalle={() => setSelectedId(null)}
+        {/* ---------- Mapa + detalle ---------- */}
+        <main className="ops-mapa">
+          <MapaOperador
+            reportes={reportesMapa}
+            seleccionadoId={selectedId}
+            onSeleccionar={setSelectedId}
+            estilo="oscuro"
           />
-        )}
-
-        {filteredReports.length === 0 ? (
-          <p className="empty-message">
-            {reports.length
-              ? 'Ningún reporte coincide con los filtros.'
-              : 'Aún no hay reportes. Envía uno desde /reportar o simula 50.'}
-          </p>
-        ) : (
-          <ul className="report-list">
-            {filteredReports.map((report) => (
-              <ReporteItem
-                key={report.id}
-                reporte={report}
-                activo={selectedId === report.id}
-                onSeleccionar={seleccionar}
-              />
-            ))}
-          </ul>
-        )}
-      </aside>
-
-      <main className="map-area">
-        <MapaOperador reportes={reportesMapa} seleccionadoId={selectedId} onSeleccionar={seleccionar} />
-      </main>
+          {selectedReport && (
+            <DetalleReporte
+              key={selectedReport.id}
+              reporte={selectedReport}
+              onActualizar={actualizar}
+              onCerrarDetalle={() => setSelectedId(null)}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

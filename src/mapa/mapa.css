@@ -43,6 +43,11 @@
   opacity: 0.8;
 }
 
+/* Vista oscura del mapa: invierte las teselas de OpenStreetMap */
+.tiles-oscuros {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.35);
+}
+
 /* Popup del pin */
 .popup { min-width: 180px; font: 13px system-ui, sans-serif; }
 .popup-grupo { font-weight: 700; margin-bottom: 4px; }
