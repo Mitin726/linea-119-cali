@@ -37,14 +37,26 @@ export default function MapaOperador({ reportes = [], seleccionadoId = null, onS
         <Marker
           key={r.id}
           position={[r.lat, r.lng]}
-          icon={crearIcono(colorDeGrupo(r.grupo), { seleccionado: r.id === seleccionadoId })}
+          icon={crearIcono(colorDeGrupo(r.grupo), {
+            seleccionado: r.id === seleccionadoId,
+            clases: clasesSegunEstado(r.estado),
+          })}
+          zIndexOffset={r.id === seleccionadoId ? 1000 : 0}
           eventHandlers={{ click: () => onSeleccionar?.(r.id) }}
         >
-          {/* TODO (estudiantes): completar el Popup con nombre, qué ve y estado. */}
           <Popup>
-            <strong>{r.grupo}</strong> · {r.barrio}
-            <br />
-            {r.estado}
+            <div className="popup">
+              <div className="popup-grupo" style={{ color: colorDeGrupo(r.grupo) }}>
+                {r.grupo} · {r.barrio}
+              </div>
+              <div className="popup-nombre">
+                {r.nombres} {r.apellidos}
+              </div>
+              <div className="popup-quever">{r.queVe}</div>
+              <div className="popup-estado">
+                Estado: <strong>{r.estado}</strong>
+              </div>
+            </div>
           </Popup>
         </Marker>
       ))}
@@ -55,12 +67,31 @@ export default function MapaOperador({ reportes = [], seleccionadoId = null, onS
   )
 }
 
-// Cuando se selecciona un reporte (desde la lista o el mapa), el mapa vuela hasta él.
+// Pulso para los reportes nuevos; apagado (gris) para los que ya no están activos.
+function clasesSegunEstado(estado) {
+  if (estado === 'Recibido') return 'pin--pulso'
+  if (estado === 'Cerrado' || estado === 'Descartado') return 'pin--apagado'
+  return ''
+}
+
+// Cuando se selecciona un reporte (desde la lista o el mapa), el mapa vuela hasta él
+// y abre su popup. Depende del id para no volver a volar con cada cambio de estado.
 function IrAlSeleccionado({ reporte }) {
   const map = useMap()
+  const id = reporte?.id
   useEffect(() => {
-    if (reporte) map.flyTo([reporte.lat, reporte.lng], 16, { duration: 0.8 })
-  }, [reporte, map])
+    if (!reporte) return
+    map.flyTo([reporte.lat, reporte.lng], 16, { duration: 0.8 })
+    map.once('moveend', () => {
+      map.eachLayer((layer) => {
+        const p = layer.getLatLng?.()
+        if (layer.openPopup && layer.getPopup?.() && p?.lat === reporte.lat && p?.lng === reporte.lng) {
+          layer.openPopup()
+        }
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, map])
   return null
 }
 

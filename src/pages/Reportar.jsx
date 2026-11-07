@@ -1,160 +1,362 @@
-import { useState, useContext } from 'react';
-import { EmergencyContext } from '../context/EmergencyContext';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { GRUPOS } from '../data/grupos';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useEmergencias } from '../context/EmergencyContext';
+import { GRUPOS, colorDeGrupo } from '../data/grupos';
 import { BARRIOS } from '../data/barrios';
+import CampoFormulario from '../components/CampoFormulario';
+import MiniMapa from '../components/MiniMapa';
+import ConfirmacionReporte from '../components/ConfirmacionReporte';
 import './Reportar.css';
 
-function LocationMarker({ position, setPosition }) {
-  const map = useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      map.flyTo(e.latlng, map.getZoom());
-    },
-  });
-  return position === null ? null : <Marker position={position}></Marker>;
+const CENTRO_CALI = { lat: 3.4516, lng: -76.532 };
+const MAX_ARCHIVOS = 3;
+const SESSION_KEY = 'bomberos_119_mi_reporte';
+
+const FORM_INICIAL = {
+  nombres: '',
+  apellidos: '',
+  telefono: '',
+  grupo: '',
+  queVe: '',
+  direccion: '',
+  barrio: '',
+  puntoReferencia: '',
+  edificio: '',
+  noAplicaEdificio: false,
+  ubicacionMapa: CENTRO_CALI,
+  puntoExacto: false,
+  // Preguntas de continuación del grupo 300 (extra)
+  edad: '',
+  sexo: '',
+  consciente: '',
+  respira: '',
+};
+
+// Devuelve un objeto { campo: mensaje } con los errores de los campos obligatorios.
+function validar(form) {
+  const errores = {};
+  if (!form.nombres.trim()) errores.nombres = 'Escribe tus nombres.';
+  if (!form.apellidos.trim()) errores.apellidos = 'Escribe tus apellidos.';
+  if (!form.telefono) errores.telefono = 'Escribe tu número de teléfono.';
+  else if (!/^\d{10}$/.test(form.telefono))
+    errores.telefono = 'El teléfono debe tener exactamente 10 dígitos (solo números).';
+  if (!form.grupo) errores.grupo = 'Selecciona el tipo de emergencia.';
+  if (!form.queVe.trim()) errores.queVe = 'Describe lo que está pasando.';
+  if (!form.direccion.trim()) errores.direccion = 'Escribe la dirección.';
+  if (!form.barrio) errores.barrio = 'Selecciona el barrio.';
+  if (!form.puntoReferencia.trim()) errores.puntoReferencia = 'Escribe un punto de referencia.';
+  if (!form.noAplicaEdificio && !form.edificio.trim())
+    errores.edificio = 'Escribe el nombre del edificio o marca «No aplica».';
+  return errores;
 }
 
+const ETIQUETAS = {
+  nombres: 'Nombres',
+  apellidos: 'Apellidos',
+  telefono: 'Teléfono',
+  grupo: 'Grupo de emergencia',
+  queVe: '¿Qué ve?',
+  direccion: 'Dirección',
+  barrio: 'Barrio',
+  puntoReferencia: 'Punto de referencia',
+  edificio: 'Nombre del edificio',
+};
+
 export default function Reportar() {
-  const { addReport, reports } = useContext(EmergencyContext);
-  const [radicado, setRadicado] = useState(null); 
-  const [mostrarTips, setMostrarTips] = useState(false); // Ventana flotante[cite: 1]
-  
-  const [form, setForm] = useState({
-    nombres: '', apellidos: '', telefono: '', grupo: '', queVe: '',
-    direccion: '', barrio: '', puntoReferencia: '', edificio: '',
-    noAplicaEdificio: false, ubicacionMapa: { lat: 3.4516, lng: -76.5320 },
-    // Extras Grupo 300[cite: 1]
-    edad: '', sexo: '', consciente: false, respira: false
-  });
-
+  const { addReport, reports } = useEmergencias();
+  // El id del reporte enviado se guarda en sessionStorage para no perder la confirmación al recargar.
+  const [miReporteId, setMiReporteId] = useState(() => sessionStorage.getItem(SESSION_KEY));
+  // Si se llega desde una tarjeta de la landing (/reportar?grupo=100), el grupo viene preseleccionado.
+  const [searchParams] = useSearchParams();
+  const grupoInicial = GRUPOS.some((g) => String(g.codigo) === searchParams.get('grupo'))
+    ? searchParams.get('grupo')
+    : '';
+  const [form, setForm] = useState({ ...FORM_INICIAL, grupo: grupoInicial });
+  const [tocados, setTocados] = useState({});
   const [archivos, setArchivos] = useState([]);
+  const [avisoArchivos, setAvisoArchivos] = useState('');
+  const [mostrarTips, setMostrarTips] = useState(false);
 
-  const isFormValid = () => {
-    if (!form.nombres || !form.apellidos) return false;
-    if (!/^\d{10}$/.test(form.telefono)) return false; 
-    if (!form.grupo || !form.queVe || !form.direccion || !form.barrio || !form.puntoReferencia) return false;
-    if (!form.noAplicaEdificio && !form.edificio.trim()) return false;
-    return true;
-  };
+  const errores = validar(form);
+  const esValido = Object.keys(errores).length === 0;
+  const errorDe = (campo) => (tocados[campo] ? errores[campo] : undefined);
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    let nuevoValor = type === 'checkbox' ? checked : value;
+    if (name === 'telefono') nuevoValor = value.replace(/\D/g, '').slice(0, 10);
+
+    setForm((prev) => {
+      const next = { ...prev, [name]: nuevoValor };
+      // Al elegir barrio, el pin del mini mapa se mueve a sus coordenadas
+      // (a menos que el ciudadano ya haya marcado un punto exacto).
+      if (name === 'barrio' && !prev.puntoExacto) {
+        const b = BARRIOS.find((x) => x.nombre === value);
+        if (b) next.ubicacionMapa = { lat: b.lat, lng: b.lng };
+      }
+      if (name === 'noAplicaEdificio' && checked) next.edificio = '';
+      return next;
+    });
+    if (type === 'checkbox' || type === 'select-one') setTocados((t) => ({ ...t, [name]: true }));
   };
+
+  const handleBlur = (e) => setTocados((t) => ({ ...t, [e.target.name]: true }));
+
+  const handlePuntoMapa = (latlng) =>
+    setForm((prev) => ({ ...prev, ubicacionMapa: latlng, puntoExacto: true }));
 
   const handleArchivos = (e) => {
-    const files = Array.from(e.target.files).slice(0, 3); 
-    const urls = files.map(file => ({ url: URL.createObjectURL(file), tipo: file.type }));
-    setArchivos(urls);
+    const seleccionados = Array.from(e.target.files);
+    const files = seleccionados.slice(0, MAX_ARCHIVOS);
+    setAvisoArchivos(
+      seleccionados.length > MAX_ARCHIVOS
+        ? `Seleccionaste ${seleccionados.length} archivos; solo se adjuntaron los primeros ${MAX_ARCHIVOS}.`
+        : ''
+    );
+    setArchivos(
+      files.map((file) => ({ url: URL.createObjectURL(file), tipo: file.type, nombre: file.name }))
+    );
   };
+
+  const quitarArchivo = (i) => setArchivos((prev) => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isFormValid()) return;
-    const barrioSeleccionado = BARRIOS.find(b => b.nombre === form.barrio);
-    const coordenadasFinales = barrioSeleccionado ? { lat: barrioSeleccionado.lat, lng: barrioSeleccionado.lng } : form.ubicacionMapa;
-    const id = addReport({ ...form, grupo: Number(form.grupo), ubicacionMapa: coordenadasFinales, archivos });
-    setRadicado(id);
+    if (!esValido) {
+      setTocados(Object.fromEntries(Object.keys(ETIQUETAS).map((k) => [k, true])));
+      return;
+    }
+    const id = addReport({ ...form, grupo: Number(form.grupo), archivos });
+    sessionStorage.setItem(SESSION_KEY, id);
+    setMiReporteId(id);
+    window.scrollTo({ top: 0 });
   };
 
-  if (radicado) {
-    const currentReport = reports.find(r => r.id === radicado);
+  const nuevoReporte = () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    setMiReporteId(null);
+    setForm(FORM_INICIAL);
+    setTocados({});
+    setArchivos([]);
+    setAvisoArchivos('');
+  };
+
+  if (miReporteId) {
+    const miReporte = reports.find((r) => r.id === miReporteId);
     return (
       <div className="reportar-container">
-        <div className="reportar-card">
-          <h2 className="success-title">¡Reporte Recibido!</h2>
-          <div className="details-box">
-            <p><strong>Número de Radicado:</strong> {radicado}</p>
-            <p style={{ fontSize: '1.25rem', marginTop: '1rem' }}>
-              <strong>Estado actual: </strong> <span className="text-accent-warm">{currentReport?.estado}</span>
-            </p>
-            {/* Aviso de solicitud de información[cite: 1] */}
-            {currentReport?.requiereInfo && (
-              <div className="alert-info">
-                El radio operador ha solicitado más información. Por favor, esté atento a su teléfono.
-              </div>
-            )}
-          </div>
-        </div>
+        <ConfirmacionReporte reporte={miReporte} onNuevoReporte={nuevoReporte} />
       </div>
     );
   }
 
+  const faltantes = Object.keys(errores).map((k) => ETIQUETAS[k]);
+  const inputProps = (name) => ({
+    id: name,
+    name,
+    value: form[name],
+    onChange: handleChange,
+    onBlur: handleBlur,
+    'aria-invalid': Boolean(errorDe(name)),
+    'aria-describedby': errorDe(name) ? `${name}-error` : undefined,
+    className: 'form-input',
+  });
+
   return (
     <div className="reportar-container">
-      <form onSubmit={handleSubmit} className="form-container">
-        <h1 className="header-title">Reportar Emergencia 119</h1>
+      <form onSubmit={handleSubmit} className="form-container" noValidate>
+        <Link to="/" className="volver-link">← Volver</Link>
+        <h1 className="header-title">Reportar emergencia 119</h1>
+        <p className="text-secondary mb-2">
+          Los campos marcados con <span className="campo-obligatorio">*</span> son obligatorios.
+          Si la vida de alguien corre peligro inmediato, <a href="tel:119">llama al 119</a>.
+        </p>
 
-        <fieldset><legend className="form-legend">Datos Personales</legend>
-          <div className="grid-2-cols">
-            <input type="text" name="nombres" placeholder="Nombres" onChange={handleInputChange} className="form-input" required />
-            <input type="text" name="apellidos" placeholder="Apellidos" onChange={handleInputChange} className="form-input" required />
-            <input type="tel" name="telefono" placeholder="Teléfono (10 dígitos)" pattern="\d{10}" onChange={handleInputChange} className="form-input grid-span-2" required />
-          </div>
-        </fieldset>
+        <fieldset>
+          <legend className="form-legend">1. ¿Cuál es su emergencia?</legend>
+          <CampoFormulario id="grupo" label="Grupo de emergencia" error={errorDe('grupo')}>
+            <select {...inputProps('grupo')}>
+              <option value="">Seleccione el tipo de emergencia...</option>
+              {GRUPOS.map((g) => (
+                <option key={g.codigo} value={g.codigo}>
+                  {g.codigo} - {g.nombre}
+                </option>
+              ))}
+            </select>
+          </CampoFormulario>
 
-        <fieldset><legend className="form-legend">Detalles de la Emergencia</legend>
-          <select name="grupo" onChange={handleInputChange} className="form-input" required>
-            <option value="">Seleccione el tipo de emergencia...</option>
-            {GRUPOS.map(g => <option key={g.codigo} value={g.codigo}>{g.codigo} - {g.nombre}</option>)}
-          </select>
-
-          {/* Preguntas de continuación del grupo 300[cite: 1] */}
           {form.grupo === '300' && (
-            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', marginTop: '1rem', borderRadius: '4px', border: '1px solid #DC2626' }}>
-              <p style={{ color: '#DC2626', fontWeight: 'bold', marginBottom: '0.5rem' }}>Información Médica Adicional</p>
+            <div className="bloque-medico">
+              <p className="bloque-medico-titulo">Información médica adicional (opcional)</p>
               <div className="grid-2-cols">
-                <input type="number" name="edad" placeholder="Edad aproximada" onChange={handleInputChange} className="form-input" />
-                <select name="sexo" onChange={handleInputChange} className="form-input">
-                  <option value="">Sexo...</option><option value="M">Masculino</option><option value="F">Femenino</option>
+                <input
+                  type="number"
+                  min="0"
+                  max="120"
+                  name="edad"
+                  value={form.edad}
+                  placeholder="Edad aproximada"
+                  onChange={handleChange}
+                  className="form-input"
+                  aria-label="Edad aproximada"
+                />
+                <select name="sexo" value={form.sexo} onChange={handleChange} className="form-input" aria-label="Sexo">
+                  <option value="">Sexo...</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="No sabe">No sabe</option>
                 </select>
-                <label className="checkbox-label"><input type="checkbox" name="consciente" onChange={handleInputChange} /> ¿Paciente consciente?</label>
-                <label className="checkbox-label"><input type="checkbox" name="respira" onChange={handleInputChange} /> ¿Paciente respira?</label>
+                <select name="consciente" value={form.consciente} onChange={handleChange} className="form-input" aria-label="¿Está consciente?">
+                  <option value="">¿Está consciente?</option>
+                  <option value="Sí">Sí</option>
+                  <option value="No">No</option>
+                  <option value="No sabe">No sabe</option>
+                </select>
+                <select name="respira" value={form.respira} onChange={handleChange} className="form-input" aria-label="¿Respira?">
+                  <option value="">¿Respira?</option>
+                  <option value="Sí">Sí</option>
+                  <option value="No">No</option>
+                  <option value="No sabe">No sabe</option>
+                </select>
               </div>
             </div>
           )}
 
-          <textarea name="queVe" placeholder="¿Qué ve? Describa la situación..." onChange={handleInputChange} className="form-input form-textarea" required />
-          <div className="grid-2-cols mt-1">
-            <input type="text" name="direccion" placeholder="Dirección exacta" onChange={handleInputChange} className="form-input" required />
-            <select name="barrio" onChange={handleInputChange} className="form-input" required>
-              <option value="">Seleccione el barrio...</option>
-              {BARRIOS.map(b => <option key={b.nombre} value={b.nombre}>{b.nombre}</option>)}
-            </select>
-          </div>
-          <input type="text" name="puntoReferencia" placeholder="Punto de referencia" onChange={handleInputChange} className="form-input mt-1" required />
+          <CampoFormulario id="queVe" label="¿Qué ve?" error={errorDe('queVe')}>
+            <textarea
+              {...inputProps('queVe')}
+              className="form-input form-textarea"
+              placeholder="Describa lo que está pasando..."
+            />
+          </CampoFormulario>
         </fieldset>
 
-        <div className="mb-2">
-          <label className="text-secondary mb-05" style={{ display: 'block' }}>Adjuntar Fotos/Videos (Máx. 3)</label>
-          {/* Soporte para videos[cite: 1] */}
-          <input type="file" multiple accept="image/*,video/*" onChange={handleArchivos} style={{ color: '#0F172A' }} />
-          <button type="button" className="btn-toggle-tips" onClick={() => setMostrarTips(!mostrarTips)}>💡 Tips de captura</button>
-          <div className="flex-center mt-1">
+        <fieldset>
+          <legend className="form-legend">2. ¿De qué número nos escribe y cuál es su nombre?</legend>
+          <div className="grid-2-cols">
+            <CampoFormulario id="nombres" label="Nombres" error={errorDe('nombres')}>
+              <input type="text" autoComplete="given-name" {...inputProps('nombres')} />
+            </CampoFormulario>
+            <CampoFormulario id="apellidos" label="Apellidos" error={errorDe('apellidos')}>
+              <input type="text" autoComplete="family-name" {...inputProps('apellidos')} />
+            </CampoFormulario>
+            <CampoFormulario id="telefono" label="Teléfono (10 dígitos)" error={errorDe('telefono')} className="grid-span-2">
+              <input type="tel" inputMode="numeric" autoComplete="tel" placeholder="3001234567" {...inputProps('telefono')} />
+            </CampoFormulario>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="form-legend">3. ¿Dónde es su emergencia?</legend>
+          <div className="grid-2-cols">
+            <CampoFormulario id="direccion" label="Dirección" error={errorDe('direccion')}>
+              <input type="text" placeholder="Ej. Calle 5 # 10-20" {...inputProps('direccion')} />
+            </CampoFormulario>
+            <CampoFormulario id="barrio" label="Barrio" error={errorDe('barrio')}>
+              <select {...inputProps('barrio')}>
+                <option value="">Seleccione el barrio...</option>
+                {BARRIOS.map((b) => (
+                  <option key={b.nombre} value={b.nombre}>
+                    {b.nombre}
+                  </option>
+                ))}
+              </select>
+            </CampoFormulario>
+            <CampoFormulario id="puntoReferencia" label="Punto de referencia" error={errorDe('puntoReferencia')} className="grid-span-2">
+              <input type="text" placeholder="Ej. Frente al parque principal" {...inputProps('puntoReferencia')} />
+            </CampoFormulario>
+            <CampoFormulario id="edificio" label="Nombre del edificio" error={errorDe('edificio')} className="grid-span-2">
+              <input
+                type="text"
+                placeholder="Ej. Edificio Torre Central"
+                disabled={form.noAplicaEdificio}
+                {...inputProps('edificio')}
+              />
+              <label className="checkbox-label mt-05">
+                <input
+                  type="checkbox"
+                  name="noAplicaEdificio"
+                  checked={form.noAplicaEdificio}
+                  onChange={handleChange}
+                />
+                No aplica (no es un edificio)
+              </label>
+            </CampoFormulario>
+          </div>
+
+          <div className="mt-1">
+            <p className="campo-label">Punto exacto en el mapa (opcional)</p>
+            <p className="tip-text">
+              {form.puntoExacto
+                ? 'Punto marcado. Puedes tocar otro lugar para corregirlo.'
+                : 'Toca el mapa para marcar el sitio exacto. Si no lo haces, usaremos el centro del barrio.'}
+            </p>
+            <div className="map-container">
+              <MiniMapa
+                posicion={form.ubicacionMapa}
+                onCambiar={handlePuntoMapa}
+                color={colorDeGrupo(Number(form.grupo))}
+              />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="form-legend">4. Fotos o videos (opcional, máx. {MAX_ARCHIVOS})</legend>
+          <div className="archivos-acciones">
+            <input
+              id="archivos"
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              onChange={handleArchivos}
+              className="input-archivos"
+            />
+            <button type="button" className="btn-toggle-tips" onClick={() => setMostrarTips(!mostrarTips)}>
+              💡 Cómo tomar las fotos
+            </button>
+          </div>
+          {avisoArchivos && <p className="campo-error">{avisoArchivos}</p>}
+          <div className="previews mt-1">
             {archivos.map((archivo, i) => (
-              archivo.tipo.includes('video') 
-                ? <video key={i} src={archivo.url} className="photo-preview" muted /> 
-                : <img key={i} src={archivo.url} alt="Evidencia" className="photo-preview" />
+              <div key={archivo.url} className="preview-item">
+                {archivo.tipo.startsWith('video') ? (
+                  <video src={archivo.url} className="photo-preview" muted controls />
+                ) : (
+                  <img src={archivo.url} alt={`Evidencia ${i + 1}`} className="photo-preview" />
+                )}
+                <button type="button" className="preview-quitar" onClick={() => quitarArchivo(i)} aria-label={`Quitar ${archivo.nombre}`}>
+                  ×
+                </button>
+              </div>
             ))}
           </div>
-        </div>
+        </fieldset>
 
-        {/* Ventana flotante de recomendaciones[cite: 1] */}
         {mostrarTips && (
-          <div className="floating-tips">
-            <h4 style={{ color: '#DC2626', marginBottom: '0.5rem' }}>Recomendaciones</h4>
-            <ul style={{ color: '#64748B', fontSize: '0.875rem', paddingLeft: '1rem' }}>
-              <li>Grabe en horizontal si es posible.</li>
-              <li>Muestre una toma abierta del lugar.</li>
-              <li>No se acerque al peligro.</li>
+          <div className="floating-tips" role="dialog" aria-label="Recomendaciones para fotos y videos">
+            <h4 className="floating-tips-titulo">Recomendaciones</h4>
+            <ul>
+              <li>Tu seguridad primero: no te acerques al fuego, humo, cables o agua.</li>
+              <li>Toma una foto abierta del lugar y otra más cercana del problema.</li>
+              <li>Incluye una referencia visible: placa, fachada o letrero.</li>
+              <li>En video, graba en horizontal, máximo 30 segundos y sin moverte mucho.</li>
+              <li>Si hay heridos, muestra cuántas personas hay, sin exponer su rostro.</li>
             </ul>
-            <button onClick={() => setMostrarTips(false)} className="btn-secondary mt-05" style={{ padding: '0.25rem', width: '100%' }}>Cerrar</button>
+            <button type="button" onClick={() => setMostrarTips(false)} className="btn-toggle-tips w-100">
+              Entendido
+            </button>
           </div>
         )}
 
-        <button type="submit" disabled={!isFormValid()} className="btn-submit">Enviar Reporte</button>
+        {!esValido && (
+          <p className="faltantes" aria-live="polite">
+            Para enviar falta completar: {faltantes.join(', ')}.
+          </p>
+        )}
+        <button type="submit" disabled={!esValido} className="btn-submit">
+          Enviar reporte
+        </button>
       </form>
     </div>
   );

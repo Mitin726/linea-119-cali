@@ -20,14 +20,15 @@ export default function Landing() {
       <main>
         <section className="hero-section">
           <div className="hero-content">
-            <p className="eyebrow">CANAL DIGITAL DE ATENCIÓN</p>
-            <h1 className="hero-title">Atención de Emergencias al Instante</h1>
+            <p className="eyebrow">LÍNEA 119 · CANAL DIGITAL DE ATENCIÓN</p>
+            <h1 className="hero-title">¿Tienes una emergencia?</h1>
             <p className="hero-subtitle">
               Conectamos tu reporte directamente con el radio operador. Envía fotos,
               videos y tu ubicación exacta en segundos para un despacho eficiente.
             </p>
             <div className="action-buttons">
               <Link to="/reportar" className="btn-reportar">Reportar Emergencia</Link>
+              <a href="tel:119" className="btn-llamar">📞 Llamar al 119</a>
             </div>
             <div className="hero-note">
               <span className="status-dot" aria-hidden="true"></span>
@@ -35,7 +36,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="canvas-container" aria-label="Ilustración 3D de atención de emergencias">
+          <div className="canvas-container" aria-label="Botón de emergencia 3D: haz clic para activar la alarma">
             <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
               <ambientLight intensity={0.5} />
               <directionalLight position={[10, 10, 5]} intensity={1.5} />
@@ -57,11 +58,16 @@ export default function Landing() {
           </div>
           <div className="groups-grid">
             {GRUPOS.map((grupo) => (
-              <div key={grupo.codigo} className="group-card" style={{ borderTop: `4px solid ${grupo.color}` }}>
+              <Link
+                key={grupo.codigo}
+                to={`/reportar?grupo=${grupo.codigo}`}
+                className="group-card"
+                style={{ borderTop: `4px solid ${grupo.color}` }}
+              >
                 <span className="group-code" style={{ color: grupo.color }}>{grupo.codigo}</span>
                 <span className="group-name">{grupo.nombre}</span>
                 <span className="card-arrow" aria-hidden="true">→</span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

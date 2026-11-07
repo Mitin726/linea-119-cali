@@ -1,137 +1,133 @@
-import { useState, useContext, useEffect } from 'react';
-import { EmergencyContext } from '../context/EmergencyContext';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { GRUPOS, colorDeGrupo } from '../data/grupos';
+import { useState, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { useEmergencias } from '../context/EmergencyContext';
+import { GRUPOS } from '../data/grupos';
+import { ESTADOS } from '../data/estados';
+import MapaOperador from '../mapa/MapaOperador';
+import ReporteItem from '../components/ReporteItem';
+import DetalleReporte from '../components/DetalleReporte';
 import './Operador.css';
 
-function MapController({ position }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) map.flyTo([position.lat, position.lng], 16, { animate: true });
-  }, [position, map]);
-  return null;
-}
-
-const crearIcono = (codigoGrupo, estado) => {
-  const color = colorDeGrupo(codigoGrupo);
-  let claseAnimacion = estado === 'Recibido' ? 'pin--pulso' : (estado === 'Cerrado' || estado === 'Descartado' ? 'pin--apagado' : '');
-  return L.divIcon({
-    className: `custom-pin ${claseAnimacion}`,
-    html: `<div class="pin-circle" style="background-color: ${color};"></div>`,
-    iconSize: [24, 24], iconAnchor: [12, 12]
-  });
-};
-
 export default function Operador() {
-  const { reports, updateReportStatus, simular50Reportes } = useContext(EmergencyContext);
+  const { reports, updateReportStatus, simular50Reportes, limpiarReportes } = useEmergencias();
   const [selectedId, setSelectedId] = useState(null);
-  
-  // Filtros por grupo y estado[cite: 1]
   const [filtroGrupo, setFiltroGrupo] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
 
-  const filteredReports = reports.filter(r => {
-    const matchGrupo = filtroGrupo ? r.grupo.toString() === filtroGrupo : true;
-    const matchEstado = filtroEstado ? r.estado === filtroEstado : true;
-    return matchGrupo && matchEstado;
-  });
+  const filteredReports = useMemo(
+    () =>
+      reports.filter(
+        (r) =>
+          (!filtroGrupo || String(r.grupo) === filtroGrupo) &&
+          (!filtroEstado || r.estado === filtroEstado)
+      ),
+    [reports, filtroGrupo, filtroEstado]
+  );
 
-  const selectedReport = reports.find(r => r.id === selectedId);
-  const mapCenter = selectedReport ? [selectedReport.ubicacionMapa.lat, selectedReport.ubicacionMapa.lng] : [3.4516, -76.5320];
+  // El mapa del código base espera { id, grupo, lat, lng, estado, barrio, ... }.
+  const reportesMapa = useMemo(
+    () => filteredReports.map((r) => ({ ...r, lat: r.ubicacionMapa.lat, lng: r.ubicacionMapa.lng })),
+    [filteredReports]
+  );
 
-  const handleValidar = () => updateReportStatus(selectedId, 'Validado');
-  const handleDescartar = () => updateReportStatus(selectedId, 'Descartado');
-  const handleCerrar = () => updateReportStatus(selectedId, 'Cerrado');
-  const handleDespachar = (unidad) => updateReportStatus(selectedId, 'Unidad despachada', { unidadDespachada: unidad });
-  
-  // Botón solicitar información[cite: 1]
-  const handleSolicitarInfo = () => updateReportStatus(selectedId, null, { requiereInfo: true });
+  const selectedReport = reports.find((r) => r.id === selectedId);
+  const pendientes = reports.filter((r) => r.estado === 'Recibido').length;
+
+  // Al seleccionar (desde la lista o el mapa) se sube al detalle, que está arriba de la lista.
+  const sidebarRef = useRef(null);
+  const seleccionar = (id) => {
+    setSelectedId(id);
+    sidebarRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const actualizar = (estado, extra) => updateReportStatus(selectedId, estado, extra);
+
+  const borrarTodo = () => {
+    if (window.confirm('¿Borrar todos los reportes? Esta acción no se puede deshacer.')) {
+      limpiarReportes();
+      setSelectedId(null);
+    }
+  };
 
   return (
     <div className="operador-container">
-      <aside className="sidebar">
+      <aside className="sidebar" ref={sidebarRef}>
         <div className="sidebar-header">
-          <h1 className="sidebar-title">Tablero de Despacho</h1>
-          <button onClick={simular50Reportes} className="btn btn-warning mt-05">Simular 50 Reportes</button>
+          <Link to="/" className="sidebar-volver">← Inicio</Link>
+          <h1 className="sidebar-title">Tablero de despacho</h1>
+          <p className="sidebar-subtitle">
+            {reports.length} reportes · <strong>{pendientes} por validar</strong>
+          </p>
+          <div className="flex-gap mt-05">
+            <button type="button" onClick={simular50Reportes} className="btn btn-warning">
+              Simular 50 reportes
+            </button>
+            <button type="button" onClick={borrarTodo} className="btn btn-outline" disabled={!reports.length}>
+              Borrar todo
+            </button>
+          </div>
         </div>
 
-        {/* Interfaz de Filtros[cite: 1] */}
         <div className="filters-container">
-          <select className="filter-select" onChange={(e) => setFiltroGrupo(e.target.value)} value={filtroGrupo}>
+          <select
+            className="filter-select"
+            onChange={(e) => setFiltroGrupo(e.target.value)}
+            value={filtroGrupo}
+            aria-label="Filtrar por grupo"
+          >
             <option value="">Todos los grupos</option>
-            {GRUPOS.map(g => <option key={g.codigo} value={g.codigo}>{g.nombre}</option>)}
+            {GRUPOS.map((g) => (
+              <option key={g.codigo} value={g.codigo}>
+                {g.codigo} - {g.nombre}
+              </option>
+            ))}
           </select>
-          <select className="filter-select" onChange={(e) => setFiltroEstado(e.target.value)} value={filtroEstado}>
+          <select
+            className="filter-select"
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            value={filtroEstado}
+            aria-label="Filtrar por estado"
+          >
             <option value="">Todos los estados</option>
-            <option value="Recibido">Recibido</option>
-            <option value="Validado">Validado</option>
-            <option value="Unidad despachada">Unidad despachada</option>
-            <option value="Cerrado">Cerrado</option>
+            {ESTADOS.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
           </select>
-        </div>
-
-        <div className="report-list">
-          {filteredReports.map(report => (
-            <div key={report.id} className={`report-item ${selectedId === report.id ? 'active' : ''}`} onClick={() => setSelectedId(report.id)}>
-              <span className="badge" style={{ backgroundColor: colorDeGrupo(report.grupo) }}>{report.grupo} - {report.estado}</span>
-              <p className="report-item-title">{report.barrio}</p>
-            </div>
-          ))}
         </div>
 
         {selectedReport && (
-          <div className="report-detail">
-            <h3 className="detail-title">Detalle de Emergencia</h3>
-            <p className="detail-text"><strong>Ciudadano:</strong> {selectedReport.nombres}</p>
-            <p className="detail-text"><strong>Teléfono:</strong> {selectedReport.telefono}</p>
-            <p className="detail-text"><strong>¿Qué ve?:</strong> {selectedReport.queVe}</p>
-            
-            {/* Renderizado condicional de variables médicas del grupo 300[cite: 1] */}
-            {selectedReport.grupo === 300 && (
-              <div style={{ padding: '0.5rem', backgroundColor: '#E2E8F0', borderRadius: '4px', margin: '0.5rem 0' }}>
-                <p>Edad: {selectedReport.edad || 'N/D'} | Sexo: {selectedReport.sexo || 'N/D'}</p>
-                <p>Consciente: {selectedReport.consciente ? 'Sí' : 'No'} | Respira: {selectedReport.respira ? 'Sí' : 'No'}</p>
-              </div>
-            )}
+          <DetalleReporte
+            key={selectedReport.id}
+            reporte={selectedReport}
+            onActualizar={actualizar}
+            onCerrarDetalle={() => setSelectedId(null)}
+          />
+        )}
 
-            <div className="action-buttons">
-              <button onClick={handleSolicitarInfo} className="btn btn-secondary">Solicitar más info al ciudadano</button>
-            </div>
-
-            <div className="operator-actions">
-              <h4 className="operator-actions-title">Acciones de Operador</h4>
-              {selectedReport.estado === 'Recibido' && (
-                <div className="flex-gap">
-                  <button onClick={handleValidar} className="btn btn-success">Validar</button>
-                  <button onClick={handleDescartar} className="btn btn-danger">Descartar</button>
-                </div>
-              )}
-              {selectedReport.estado === 'Validado' && (
-                <div className="grid-dispatch">
-                  <button onClick={() => handleDespachar('Máquina')} className="btn btn-primary">Máquina</button>
-                  <button onClick={() => handleDespachar('Ambulancia')} className="btn btn-success">Ambulancia</button>
-                </div>
-              )}
-              {(selectedReport.estado === 'Unidad despachada' || selectedReport.estado === 'Validado') && (
-                <button onClick={handleCerrar} className="btn btn-secondary mt-05">Cerrar Caso</button>
-              )}
-            </div>
-          </div>
+        {filteredReports.length === 0 ? (
+          <p className="empty-message">
+            {reports.length
+              ? 'Ningún reporte coincide con los filtros.'
+              : 'Aún no hay reportes. Envía uno desde /reportar o simula 50.'}
+          </p>
+        ) : (
+          <ul className="report-list">
+            {filteredReports.map((report) => (
+              <ReporteItem
+                key={report.id}
+                reporte={report}
+                activo={selectedId === report.id}
+                onSeleccionar={seleccionar}
+              />
+            ))}
+          </ul>
         )}
       </aside>
 
       <main className="map-area">
-        <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <MapController position={selectedReport?.ubicacionMapa} />
-          {filteredReports.map(report => (
-            <Marker key={report.id} position={[report.ubicacionMapa.lat, report.ubicacionMapa.lng]} icon={crearIcono(report.grupo, report.estado)} eventHandlers={{ click: () => setSelectedId(report.id) }}>
-              <Popup><strong className="popup-title">{report.nombres}</strong><br/><span className="popup-status">{report.estado}</span></Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <MapaOperador reportes={reportesMapa} seleccionadoId={selectedId} onSeleccionar={seleccionar} />
       </main>
     </div>
   );

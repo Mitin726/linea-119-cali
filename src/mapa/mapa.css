@@ -33,8 +33,23 @@
   to { transform: scale(1.6); opacity: 0; }
 }
 
-/* TODO (estudiantes): crear una clase "pin--apagado" (gris, opacidad baja)
-   para los reportes Cerrado o Descartado. */
+/* Reportes Cerrado o Descartado: gris y con opacidad baja. */
+.pin--apagado {
+  background: #9ca3af;
+  opacity: 0.45;
+  box-shadow: none;
+}
+.pin--apagado.pin--seleccionado {
+  opacity: 0.8;
+}
+
+/* Popup del pin */
+.popup { min-width: 180px; font: 13px system-ui, sans-serif; }
+.popup-grupo { font-weight: 700; margin-bottom: 4px; }
+.popup-nombre { font-weight: 600; color: #0f172a; }
+.popup-quever { color: #475569; margin: 4px 0; }
+.popup-estado { color: #0f172a; }
+
 
 /* Leyenda y controles sobre el mapa */
 .leyenda {
@@ -47,3 +62,12 @@
 }
 .leyenda__fila { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
 .leyenda__punto { width: 10px; height: 10px; border-radius: 50%; }
+
+/* En pantallas pequeñas la leyenda se compacta para no tapar el mapa */
+@media (max-width: 768px) {
+  .leyenda { min-width: 0; font: 10px system-ui, sans-serif; padding: 6px 8px; }
+  .leyenda__fila span:nth-child(3) { display: none; }
+}
+@media (max-width: 480px) {
+  .leyenda__fila { display: none; }
+}
