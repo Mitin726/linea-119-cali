@@ -18,8 +18,7 @@
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.6), 0 0 18px var(--color);
 }
 
-/* Animación de pulso YA ESCRITA.
-   TODO (estudiantes): aplicar la clase "pin--pulso" a los reportes en estado Recibido. */
+/* Pulso: se aplica a los reportes en estado Recibido (ver clasesSegunEstado en MapaOperador.jsx). */
 .pin--pulso::before {
   content: '';
   position: absolute;
@@ -43,13 +42,38 @@
   opacity: 0.8;
 }
 
+/* Unidad despachada: anillo punteado alrededor del pin. */
+.pin--despachado::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px dashed var(--color);
+}
+
+/* Grupo de reportes cercanos (emergencia masiva) */
+.cluster {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #94a3b8;
+  box-shadow: 0 0 0 5px rgba(148, 163, 184, 0.22);
+  color: #fff;
+  font: 700 13px system-ui, sans-serif;
+}
+.cluster--pendientes {
+  border-color: #f04438;
+  box-shadow: 0 0 0 5px rgba(240, 68, 56, 0.28);
+}
+
 /* Vista oscura del mapa: invierte las teselas de OpenStreetMap */
 .tiles-oscuros {
   filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.35);
 }
 
 /* Popup del pin */
-.popup { min-width: 180px; font: 13px system-ui, sans-serif; }
+.popup { min-width: 180px; max-width: 240px; font: 13px system-ui, sans-serif; }
 .popup-grupo { font-weight: 700; margin-bottom: 4px; }
 .popup-nombre { font-weight: 600; color: #0f172a; }
 .popup-quever { color: #475569; margin: 4px 0; }
@@ -67,6 +91,16 @@
 }
 .leyenda__fila { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
 .leyenda__punto { width: 10px; height: 10px; border-radius: 50%; }
+.leyenda__estados {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+.leyenda__estados span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda__est { width: 9px; height: 9px; border-radius: 50%; background: #e2e8f0; }
+.leyenda__est--pulso { box-shadow: 0 0 0 3px rgba(226, 232, 240, 0.35); }
+.leyenda__est--anillo { background: none; border: 2px dashed #e2e8f0; width: 11px; height: 11px; }
+.leyenda__est--gris { background: #64748b; }
 
 /* En pantallas pequeñas la leyenda se compacta para no tapar el mapa */
 @media (max-width: 768px) {
@@ -74,5 +108,5 @@
   .leyenda__fila span:nth-child(3) { display: none; }
 }
 @media (max-width: 480px) {
-  .leyenda__fila { display: none; }
+  .leyenda__fila, .leyenda__estados { display: none; }
 }

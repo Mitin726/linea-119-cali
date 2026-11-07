@@ -13,7 +13,7 @@ Este proyecto es un prototipo funcional de un canal digital web para el Benemér
 ## Tecnologías Utilizadas
 * **Frontend:** React (con Vite)
 * **Enrutamiento:** React Router Dom
-* **Mapas:** React-Leaflet y OpenStreetMap (gratuito)
+* **Mapas:** React-Leaflet y OpenStreetMap (gratuito), react-leaflet-cluster para agrupar reportes
 * **Escena 3D:** React Three Fiber y Drei
 * **Íconos y tipografía:** lucide-react, Inter y JetBrains Mono (Google Fonts)
 * **Estado Global:** Context API + LocalStorage + Eventos de Sincronización
@@ -50,8 +50,8 @@ A continuación, se responde a las inquietudes del cliente, explicando qué se i
 * **Qué faltaría para producción:** Ya que no podemos depender de que el ciudadano deje la pestaña abierta, en producción se debe conectar un backend real para enviar un mensaje de texto (SMS) automatizado vía Twilio, o una notificación de WhatsApp (Meta API) con un enlace para hacer seguimiento.
 
 ### 3. ¿Qué pasa si hay una emergencia de gran magnitud y llegan reportes masivos?
-* **Qué se hizo en el prototipo:** Se implementó un modo de simulación que genera 50 reportes aleatorios al instante. Para manejarlos, el tablero del operador incluye filtros por "Grupo de emergencia" y "Estado", un contador de reportes «por validar», la leyenda del mapa con el conteo por grupo, pines que pulsan cuando el reporte es nuevo y pines grises para los casos cerrados o descartados.
-* **Qué faltaría para producción:** Implementar "Clustering" (agrupación de pines) en el mapa para que si hay 100 reportes en una misma cuadra, se vea un solo círculo con el número "100" en lugar de saturar la pantalla. En el backend, se requeriría un balanceador de carga y paginación para la base de datos.
+* **Qué se hizo en el prototipo:** Se implementó un modo de simulación que genera 50 reportes aleatorios al instante. Para manejarlos, el tablero del operador incluye filtros por "Grupo de emergencia" y "Estado", contadores por estado, una lista ordenada por prioridad (primero lo que falta validar) y **agrupación de reportes cercanos** en el mapa (`react-leaflet-cluster`): los pines cercanos se muestran como un círculo con el total, rojo si dentro hay reportes sin validar. Cada estado se distingue en el pin: pulso (Recibido), normal (Validado), anillo (Unidad despachada) y gris (Cerrado/Descartado).
+* **Qué faltaría para producción:** Un backend con cola de mensajes y base de datos para recibir miles de reportes a la vez, detección automática de duplicados (mismo lugar y misma hora), paginación de la lista y varios operadores trabajando sobre el mismo tablero en tiempo real (WebSockets).
 
 ### 4. ¿Puede el radio operador, si lo decide, hacer una videollamada al ciudadano?
 * **Qué se hizo en el prototipo:** La videollamada está fuera del alcance del parcial. En su lugar, el detalle del reporte tiene un botón **«Llamar»** (enlace `tel:` con el teléfono del ciudadano) y un botón **«Solicitar más información»** que muestra un aviso en la pantalla de confirmación del ciudadano.
@@ -98,7 +98,7 @@ Botón de emergencia 119 hecho con geometrías básicas (cilindros y un anillo):
 ## Extras implementados
 * Videos además de fotos, con ventana flotante de recomendaciones para tomarlos.
 * Botón del operador «Solicitar más información» con aviso en la pantalla del ciudadano.
-* Modo emergencia masiva: «Simular 50 reportes» y filtros por grupo y estado.
+* Modo emergencia masiva: «Simular 50 reportes», filtros por grupo y estado, y agrupación de reportes cercanos en el mapa.
 * Preguntas de continuación del grupo 300 (sexo, edad, ¿consciente?, ¿respira?).
 * Mini mapa en `/reportar` para tocar el punto exacto (`useMapEvents`).
 * Sincronización de dos pestañas (ciudadano y operador) con el evento `storage`.
